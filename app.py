@@ -11,21 +11,21 @@ try:
 except Exception:
     client = None
 
-# --- APP CONFIG & SAFE VINTAGE DESIGN WRAPPER ---
+# --- APP CONFIG & SAFE RETRO VINTAGE DESIGN WRAPPER ---
 st.set_page_config(page_title="Shared Virtual Closet", layout="wide")
 
-# Safe CSS Injector: Adjusts colors cleanly without breaking Streamlit's layout frames
+# Safe CSS Injector: Adjusts colors cleanly without breaking structural layout frames
 st.markdown("""
     <style>
     /* Import your retro vintage typography from Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Young+Serif&family=Inter:wght@400;600&display=swap');
     
-    /* Set page background safely */
+    /* Set main layout wrapper background safely */
     .stAppViewMain {
-        background-color: #2D6A4F !important; /* Rich Sage Green Base */
+        background-color: #2D6A4F !important; /* Rich Sage Green Canvas */
     }
     
-    /* Enclosed Main Dashboard Container */
+    /* Enclosed Main Dashboard Panel mimicking vintage card stock */
     .main-panel {
         background-color: #F8F6F0 !important; /* Clean vintage off-white paper color */
         border: 3px solid #1A1A1A !important;
@@ -36,21 +36,29 @@ st.markdown("""
         color: #1A1A1A !important;
     }
     
-    /* Target application headings precisely to avoid breaking structural text */
+    /* Target application headers with your custom curvy font */
     .main-panel h1, .main-panel h2, .main-panel h3, .main-panel h4 {
         font-family: 'Young Serif', serif !important;
         color: #FF8FAB !important; /* Retro Dusty Pink Accent text */
         font-weight: normal !important;
-        text-shadow: 2px 2px 0px #1A1A1A;
+        text-shadow: 2px 2px 0px #1A1A1A !important;
+        margin-bottom: 15px !important;
     }
     
     /* Update sidebar heading typography */
-    [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p {
+    [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
         font-family: 'Young Serif', serif !important;
         color: #FF8FAB !important;
     }
+    
+    /* Make standard main panel labels readable */
+    .main-panel label, .main-panel p {
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 600 !important;
+        color: #1A1A1A !important;
+    }
 
-    /* Chunky Retro Buttons */
+    /* Chunky Retro Interactive Buttons */
     div.stButton > button {
         font-family: 'Young Serif', serif !important;
         background-color: #FF8FAB !important;
@@ -58,9 +66,17 @@ st.markdown("""
         border: 2px solid #1A1A1A !important;
         border-radius: 8px !important;
         box-shadow: 3px 3px 0px #1A1A1A !important;
+        font-size: 16px !important;
+        width: 100% !important;
     }
     
-    /* Vintage Tag Badges */
+    div.stButton > button:hover {
+        background-color: #FFA5AB !important;
+        color: #1A1A1A !important;
+        border: 2px solid #1A1A1A !important;
+    }
+    
+    /* Vintage Tag Badges for Clothes */
     .tag-badge {
         display: inline-block;
         background-color: #FF8FAB;
