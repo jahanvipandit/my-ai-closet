@@ -1,4 +1,3 @@
-
 import streamlit as st
 from PIL import Image
 from rembg import remove
@@ -12,58 +11,56 @@ try:
 except Exception:
     client = None
 
-# --- APP CONFIG & CUSTOM RETRO FUNKY STYLING ---
+# --- APP CONFIG & SAFE VINTAGE DESIGN WRAPPER ---
 st.set_page_config(page_title="Shared Virtual Closet", layout="wide")
 
-# Custom CSS injecting the precise retro green/pink palette and "Young Serif" font family
+# Safe CSS Injector: Adjusts colors cleanly without breaking Streamlit's layout frames
 st.markdown("""
     <style>
-    /* Import your custom heavy, curvy retro vintage serif fonts from Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Young+Serif&family=DM+Serif+Display&family=Inter:wght@400;600&display=swap');
+    /* Import your retro vintage typography from Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Young+Serif&family=Inter:wght@400;600&display=swap');
     
-    /* Global Background and Global Font transpositions */
-    html, body, [class*="css"], .stApp {
-        background-color: #2D6A4F !important; /* Rich Sage/Grid Green Base Color */
-        color: #FFFFFF !important;
-        font-family: 'Young Serif', serif !important;
+    /* Set page background safely */
+    .stAppViewMain {
+        background-color: #2D6A4F !important; /* Rich Sage Green Base */
     }
     
-    /* Transpose the custom curvy font onto ALL specific app headers, labels and titles */
-    h1, h2, h3, h4, h5, h6, .profile-header, label, .stRadio label, p {
-        font-family: 'Young Serif', serif !important;
-        font-weight: normal !important;
-        color: #FF8FAB !important; /* Funky Vintage Pink text accent color */
-        letter-spacing: 0.5px;
-    }
-    
-    /* App Dashboard Enclosure wrapper mimicking a structured desktop panel */
+    /* Enclosed Main Dashboard Container */
     .main-panel {
-        background-color: #F8F6F0 !important; /* Clean retro off-white paper color */
-        border: 3px solid #1A1A1A;
-        border-radius: 16px;
-        padding: 25px;
-        box-shadow: 8px 8px 0px #1A1A1A; /* Crisp block shadow */
+        background-color: #F8F6F0 !important; /* Clean vintage off-white paper color */
+        border: 3px solid #1A1A1A !important;
+        border-radius: 16px !important;
+        padding: 25px !important;
+        margin-top: 10px !important;
+        box-shadow: 8px 8px 0px #1A1A1A !important; /* Block drop shadow */
         color: #1A1A1A !important;
     }
     
-    /* Style all text inside buttons and selectboxes to carry your custom font */
+    /* Target application headings precisely to avoid breaking structural text */
+    .main-panel h1, .main-panel h2, .main-panel h3, .main-panel h4 {
+        font-family: 'Young Serif', serif !important;
+        color: #FF8FAB !important; /* Retro Dusty Pink Accent text */
+        font-weight: normal !important;
+        text-shadow: 2px 2px 0px #1A1A1A;
+    }
+    
+    /* Update sidebar heading typography */
+    [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p {
+        font-family: 'Young Serif', serif !important;
+        color: #FF8FAB !important;
+    }
+
+    /* Chunky Retro Buttons */
     div.stButton > button {
         font-family: 'Young Serif', serif !important;
-        background-color: #FF8FAB !important; /* Pink Background */
+        background-color: #FF8FAB !important;
         color: #1A1A1A !important;
         border: 2px solid #1A1A1A !important;
         border-radius: 8px !important;
         box-shadow: 3px 3px 0px #1A1A1A !important;
-        transition: all 0.2s;
     }
     
-    div.stButton > button:hover {
-        transform: translate(-1px, -1px);
-        box-shadow: 4px 4px 0px #1A1A1A !important;
-        background-color: #FFA5AB !important;
-    }
-    
-    /* Customized visual badge tags for clothing parameters */
+    /* Vintage Tag Badges */
     .tag-badge {
         display: inline-block;
         background-color: #FF8FAB;
@@ -80,7 +77,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Wrap app content in a clean container that offsets nicely against the grid-green background
+# Open the clean dashboard container wrapper
 st.markdown("<div class='main-panel'>", unsafe_allow_html=True)
 
 # --- SESSION STATE INITIALIZATION ---
