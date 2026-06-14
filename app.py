@@ -20,7 +20,7 @@ st.markdown("""
     /* Import your retro vintage typography from Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Young+Serif&family=Inter:wght@400;600&display=swap');
     
-    /* Set main layout wrapper background safely */
+    /* Set main layout wrapper background safely without breaking structural frames */
     .stAppViewMain {
         background-color: #2D6A4F !important; /* Rich Sage Green Canvas */
     }
@@ -45,7 +45,7 @@ st.markdown("""
         margin-bottom: 15px !important;
     }
     
-    /* Update sidebar heading typography */
+    /* Update sidebar heading typography and text color safely */
     [data-testid="stSidebar"] h2, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
         font-family: 'Young Serif', serif !important;
         color: #FF8FAB !important;
