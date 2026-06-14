@@ -5,17 +5,15 @@ import io
 import json
 from google import genai
 
-# Initialize Gemini Client (Expects GEMINI_API_KEY environment variable)
+# Initialize Gemini Client
 try:
     client = genai.Client()
 except Exception:
     client = None
 
-# --- BASIC APP CONFIG (NEUTRAL STYLE) ---
+# --- BASIC APP CONFIG ---
 st.set_page_config(page_title="Shared Virtual Closet", layout="wide")
-
 st.title("🪞 Shared Virtual Dressing Room")
-st.write("Welcome to your shared closet app. Use the sidebar to upload profiles and clothing.")
 
 # --- SESSION STATE INITIALIZATION ---
 if "profiles" not in st.session_state:
@@ -26,166 +24,126 @@ if "profiles" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = {"liked_combos": [], "disliked_combos": []}
 
-# --- AI TAGGING PIPELINE ---
+# Simple index tracking for cycling options safely
+if "top_index" not in st.session_state:
+    st.session_state.top_index = 0
+if "bottom_index" not in st.session_state:
+    st.session_state.bottom_index = 0
+
+# --- IMAGES & TAGS BACKGROUND PIPELINES ---
 def process_clothing_image(uploaded_file):
-    """Removes backgrounds cleanly for accurate layer fitting."""
     input_bytes = uploaded_file.read()
     output_bytes = remove(input_bytes)
     return Image.open(io.BytesIO(output_bytes))
 
 def ai_generate_clothing_tags(image, category):
-    """Generates specific tags matching your parameters (Weather, Season, Occasion)."""
     if not client:
         return ["Casual", "Spring", "Mall"]
-        
-    prompt = f"""
-    Analyze this '{category}' item. Provide context tags across 4 categories:
-    1. Weather (e.g., Hot, Cold, Rainy, Mild)
-    2. Season (e.g., Summer, Fall, Winter, Spring)
-    3. Occasions (List all that apply: Work, Mall, Wedding, BBQ, Date Night, Casual, Formal)
-    4. General Style/Color notes.
-    Return strictly as a flat JSON list of strings, like: ["Cold", "Winter", "Work", "Formal", "Black", "Wool"]
-    """
+    prompt = f"Analyze this {category} item. Return strictly a JSON list of 3 strings for its weather, season, and occasion tags. Example: ['Warm', 'Summer', 'Casual']"
     try:
         img_byte_arr = io.BytesIO()
         image.save(img_byte_arr, format='PNG')
         img_bytes = img_byte_arr.getvalue()
-        
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=[prompt, img_bytes]
-        )
+        response = client.models.generate_content(model='gemini-2.5-flash', contents=[prompt, img_bytes])
         cleaned_text = response.text.strip().replace("```json", "").replace("```", "")
         return json.loads(cleaned_text)
     except Exception:
         return ["Casual", "Summer", "BBQ"]
 
-# --- SIDEBAR: PROFILES & UPLOADS ---
+# --- SIDEBAR OUTLET ---
 with st.sidebar:
     st.header("👤 Account Setup")
-    
-    # Active Profile Selection
-    current_user = st.radio("Who is using the closet right now?", ["Sarah's Closet", "Mark's Closet"])
+    current_user = st.radio("Who is active?", ["Sarah's Closet", "Mark's Closet"])
     other_user = "Mark's Closet" if current_user == "Sarah's Closet" else "Sarah's Closet"
     
-    # Profile Body Avatar Upload
-    avatar_file = st.file_uploader("Upload standing full-body photo:", type=["png", "jpg", "jpeg"])
+    avatar_file = st.file_uploader("Upload avatar photo:", type=["png", "jpg", "jpeg"])
     if avatar_file:
         st.session_state.profiles[current_user]["avatar"] = Image.open(avatar_file)
-        st.success("Avatar saved successfully!")
+        st.success("Avatar uploaded!")
 
     st.write("---")
-    st.header("➕ Add New Clothes")
+    st.header("➕ Add Clothes")
+    upload_target = st.selectbox("Whose closet?", [current_user, other_user])
+    cat = st.selectbox("Category", ["Tops", "Bottoms", "Accessories"])
+    item_file = st.file_uploader("Item photo:", type=["png", "jpg", "jpeg"])
     
-    upload_target = st.selectbox("Add item to whose closet?", [current_user, other_user])
-    cat = st.selectbox("Item Category", ["Tops", "Bottoms", "Accessories"])
-    item_file = st.file_uploader("Choose clothing image:", type=["png", "jpg", "jpeg"])
-    
-    custom_tags_input = st.text_input("Extra custom tags (comma-separated):", placeholder="vintage, oversized")
+    if st.button("✨ Save Item") and item_file:
+        with st.spinner("Processing..."):
+            img = process_clothing_image(item_file)
+            tags = ai_generate_clothing_tags(img, cat)
+        st.session_state.profiles[upload_target]["closet"][cat].append({"image": img, "tags": tags})
+        st.success("Item added successfully!")
 
-    if st.button("✨ Scan & Save to Closet") and item_file:
-        with st.spinner("Isolating clothing item..."):
-            processed_img = process_clothing_image(item_file)
-        with st.spinner("AI analyzing tags for seasons & events..."):
-            ai_tags = ai_generate_clothing_tags(processed_img, cat)
-        
-        if custom_tags_input:
-            custom_tags = [t.strip() for t in custom_tags_input.split(",") if t.strip()]
-            ai_tags.extend(custom_tags)
-            
-        final_tags = list(set(ai_tags))
-        
-        item_data = {"image": processed_img, "tags": final_tags}
-        st.session_state.profiles[upload_target]["closet"][cat].append(item_data)
-        st.success(f"Successfully added to {upload_target}!")
+# --- MAIN SCREEN INTERFACE ---
+st.subheader(f"Dressing Room: {current_user}")
+borrow_clothes = st.checkbox(f"🔄 Borrow clothing options from {other_user}", value=False)
 
-# --- MAIN APP INTERFACE: FILTERING & MIX & MATCH ---
-st.subheader(f"Current Dressing Room: {current_user}")
+# Build filtering loops
+weather_filter = st.selectbox("Filter by Weather", ["All Weather", "Hot", "Cold", "Mild", "Rainy"])
+season_filter = st.selectbox("Filter by Season", ["All Seasons", "Summer", "Winter", "Spring", "Fall"])
+occasion_filter = st.selectbox("Filter by Occasion", ["All Occasions", "Work", "Mall", "Wedding", "BBQ", "Date Night", "Casual"])
 
-# Access Toggles (Borrowing Clothes Feature)
-borrow_clothes = st.checkbox(f"🔄 Cross-reference and borrow clothing layers from {other_user}", value=False)
-source_profile = st.session_state.profiles[current_user]
-
-# --- GLOBAL FILTERS ---
-st.write("### 🔍 Filter Options")
-f_col1, f_col2, f_col3 = st.columns(3)
-
-with f_col1:
-    weather_filter = st.selectbox("Current Weather", ["All Weather", "Hot", "Cold", "Mild", "Rainy"])
-with f_col2:
-    season_filter = st.selectbox("Current Season", ["All Seasons", "Summer", "Winter", "Spring", "Fall"])
-with f_col3:
-    occasion_filter = st.selectbox("Target Occasion", ["All Occasions", "Work", "Mall", "Wedding", "BBQ", "Date Night", "Casual"])
-
-# Filtering logic helper function
-def get_filtered_pool(category):
+def get_filtered_items(category):
     pool = []
-    for i, item in enumerate(st.session_state.profiles[current_user]["closet"][category]):
-        pool.append({"item": item, "source": current_user, "index": i})
-    
+    for item in st.session_state.profiles[current_user]["closet"][category]:
+        pool.append(item)
     if borrow_clothes:
-        for i, item in enumerate(st.session_state.profiles[other_user]["closet"][category]):
-            pool.append({"item": item, "source": other_user, "index": i})
+        for item in st.session_state.profiles[other_user]["closet"][category]:
+            pool.append(item)
             
-    filtered_pool = []
-    for entry in pool:
-        tags = [t.lower() for t in entry["item"]["tags"]]
-        if weather_filter != "All Weather" and weather_filter.lower() not in tags:
+    filtered = []
+    for item in pool:
+        tags_lower = [t.lower() for t in item["tags"]]
+        if weather_filter != "All Weather" and weather_filter.lower() not in tags_lower:
             continue
-        if season_filter != "All Seasons" and season_filter.lower() not in tags:
+        if season_filter != "All Seasons" and season_filter.lower() not in tags_lower:
             continue
-        if occasion_filter != "All Occasions" and occasion_filter.lower() not in tags:
+        if occasion_filter != "All Occasions" and occasion_filter.lower() not in tags_lower:
             continue
-        filtered_pool.append(entry)
-    return filtered_pool
+        filtered.append(item)
+    return filtered
 
-tops_pool = get_filtered_pool("Tops")
-bottoms_pool = get_filtered_pool("Bottoms")
-acc_pool = get_filtered_pool("Accessories")
+tops = get_filtered_items("Tops")
+bottoms = get_filtered_items("Bottoms")
 
-# --- APP LAYOUT ---
-view_col1, view_col2 = st.columns([5, 5])
+col1, col2 = st.columns([5, 5])
 
-with view_col1:
-    st.write("### 👤 Silhouette Alignment")
-    if source_profile["avatar"]:
-        st.image(source_profile["avatar"], caption="Your Standing Fitting Silhouette", use_container_width=True)
+with col1:
+    st.write("### 👤 Your Photo")
+    if st.session_state.profiles[current_user]["avatar"]:
+        st.image(st.session_state.profiles[current_user]["avatar"], use_container_width=True)
     else:
-        st.info("Upload your standing full-body photo in the sidebar to sync your virtual silhouette layout here.")
+        st.info("Upload your full-body picture in the sidebar to see it here.")
 
-with view_col2:
-    st.write("### 🔄 Mix & Match Carousel")
+with col2:
+    st.write("### 🔄 Mix & Match Closet")
     
-    if len(tops_pool) > 0 and len(bottoms_pool) > 0:
-        top_sel = st.select_slider("Cycle Tops", options=range(len(tops_pool)), format_func=lambda x: f"Top {x+1} ({tops_pool[x]['source']})")
-        bottom_sel = st.select_slider("Cycle Bottoms", options=range(len(bottoms_pool)), format_func=lambda x: f"Bottom {x+1} ({bottoms_pool[x]['source']})")
+    if len(tops) > 0 and len(bottoms) > 0:
+        # Prevent layout index boundary crashes
+        if st.session_state.top_index >= len(tops):
+            st.session_state.top_index = 0
+        if st.session_state.bottom_index >= len(bottoms):
+            st.session_state.bottom_index = 0
+            
+        # Cycle Action Buttons
+        btn_c1, btn_c2 = st.columns(2)
+        if btn_c1.button("👚 Next Top"):
+            st.session_state.top_index = (st.session_state.top_index + 1) % len(tops)
+        if btn_c2.button("👖 Next Bottom"):
+            st.session_state.bottom_index = (st.session_state.bottom_index + 1) % len(bottoms)
+            
+        current_top = tops[st.session_state.top_index]
+        current_bottom = bottoms[st.session_state.bottom_index]
         
-        active_top = tops_pool[top_sel]["item"]
-        active_bottom = bottoms_pool[bottom_sel]["item"]
+        # Display chosen items
+        st.image(current_top["image"], caption="Active Top Selection", width=250)
+        st.write("Top Tags: " + ", ".join(current_top["tags"]))
         
-        outfit_display = st.columns(2)
-        with outfit_display[0]:
-            st.image(active_top["image"], caption="Selected Top", use_container_width=True)
-            st.write(f"Tags: {', '.join(active_top['tags'])}")
-            
-        with outfit_display[1]:
-            st.image(active_bottom["image"], caption="Selected Bottom", use_container_width=True)
-            st.write(f"Tags: {', '.join(active_bottom['tags'])}")
-            
-        if acc_pool:
-            acc_sel = st.selectbox("Mix Accessory overlay:", options=range(len(acc_pool)), format_func=lambda x: f"Accessory {x+1}")
-            st.image(acc_pool[acc_sel]["item"]["image"], width=120)
-            
+        st.image(current_bottom["image"], caption="Active Bottom Selection", width=250)
+        st.write("Bottom Tags: " + ", ".join(current_bottom["tags"]))
+        
         st.write("---")
-        fb_cols = st.columns(2)
-        current_combo_signature = f"{tops_pool[top_sel]['source']}_{tops_pool[top_sel]['index']}-{bottoms_pool[bottom_sel]['source']}_{bottoms_pool[bottom_sel]['index']}"
-        
-        if fb_cols[0].button("❤️ Save Combo"):
-            st.session_state.history["liked_combos"].append(current_combo_signature)
-            st.toast("Saved to your personal style catalog!")
-        if fb_cols[1].button("❌ Dislike Combo"):
-            st.session_state.history["disliked_combos"].append(current_combo_signature)
-            st.toast("Muted combo from AI Stylist suggestions.")
-            
+        if st.button("❤️ Save Outfit Combination"):
+            st.toast("Saved to your preferences!")
     else:
-        st.warning("No items match your active filters. Try toggling your weather/season dropdown configurations or adding more clothing uploads!")
+        st.warning("No items match your active filters. Upload a Top and a Bottom in the sidebar to start styling!")
