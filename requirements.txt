@@ -1,0 +1,5 @@
+TextEdit
+streamlit
+pillow
+rembg
+google-genai
