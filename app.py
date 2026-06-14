@@ -170,4 +170,4 @@ with view_col2:
             
         with outfit_display[1]:
             st.image(active_bottom["image"], caption="Selected Bottom", use_container_width=True)
-            st.write(f"Tags: {
+            st.write(f"Tags: {', '.join(active_top['tags'])}")
