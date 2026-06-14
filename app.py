@@ -170,4 +170,22 @@ with view_col2:
             
         with outfit_display[1]:
             st.image(active_bottom["image"], caption="Selected Bottom", use_container_width=True)
-            st.write(f"Tags: {', '.join(active_top['tags'])}")
+            st.write(f"Tags: {', '.join(active_bottom['tags'])}")
+            
+        if acc_pool:
+            acc_sel = st.selectbox("Mix Accessory overlay:", options=range(len(acc_pool)), format_func=lambda x: f"Accessory {x+1}")
+            st.image(acc_pool[acc_sel]["item"]["image"], width=120)
+            
+        st.write("---")
+        fb_cols = st.columns(2)
+        current_combo_signature = f"{tops_pool[top_sel]['source']}_{tops_pool[top_sel]['index']}-{bottoms_pool[bottom_sel]['source']}_{bottoms_pool[bottom_sel]['index']}"
+        
+        if fb_cols[0].button("❤️ Save Combo"):
+            st.session_state.history["liked_combos"].append(current_combo_signature)
+            st.toast("Saved to your personal style catalog!")
+        if fb_cols[1].button("❌ Dislike Combo"):
+            st.session_state.history["disliked_combos"].append(current_combo_signature)
+            st.toast("Muted combo from AI Stylist suggestions.")
+            
+    else:
+        st.warning("No items match your active filters. Try toggling your weather/season dropdown configurations or adding more clothing uploads!")
