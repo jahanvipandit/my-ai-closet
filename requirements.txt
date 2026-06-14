@@ -1,4 +1,4 @@
-TextEdit
+
 streamlit
 pillow
 rembg
